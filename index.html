@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Minecraft Companion & CS Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Plus Jakarta Sans', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            mc: {
+              bg: '#0F172A',
+              card: '#1E293B',
+              border: '#334155',
+              accent: '#10B981', // Emerald
+              diamond: '#38BDF8', // Diamond Blue
+              redstone: '#EF4444', // Redstone Red
+              gold: '#F59E0B',
+              purple: '#A855F7', // Nether/Portal
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0B0F19;
+      color: #E2E8F0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+    .mono-font {
+      font-family: 'JetBrains Mono', monospace;
+    }
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0F172A;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+    .tab-active {
+      border-bottom: 2px solid #10B981;
+      color: #10B981;
+      background-color: rgba(16, 185, 129, 0.1);
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col">
+
+  <!-- Toast Notification -->
+  <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 bg-slate-800 text-emerald-400 border border-emerald-500/30 px-4 py-3 rounded-lg shadow-2xl flex items-center gap-3">
+    <i class="fa-solid fa-circle-check"></i>
+    <span id="toast-message" class="text-sm font-medium">Notification message</span>
+  </div>
+
+  <!-- Header / Navigation -->
+  <header class="bg-slate-900 border-b border-slate-800 sticky top-0 z-40">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        <!-- Logo -->
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-lg bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 text-xl font-bold">
+            <i class="fa-solid fa-cube"></i>
+          </div>
+          <div>
+            <h1 class="text-lg font-bold text-white tracking-wide">CraftOS <span class="text-emerald-400 text-xs px-2 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">Companion v1.0</span></h1>
+            <p class="text-xs text-slate-400">Minecraft & CS Utilities Hub</p>
+          </div>
+        </div>
+
+        <!-- System Stats / Time -->
+        <div class="hidden md:flex items-center space-x-6 text-xs text-slate-400 mono-font">
+          <div class="flex items-center gap-2 bg-slate-800/60 px-3 py-1.5 rounded-md border border-slate-700/50">
+            <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            <span>Local DB Active</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Navigation Tabs -->
+      <nav class="flex space-x-2 border-t border-slate-800/80 pt-2 overflow-x-auto no-scrollbar">
+        <button onclick="switchTab('coords')" id="tab-coords" class="tab-btn tab-active px-4 py-2.5 rounded-t-lg font-medium text-sm flex items-center gap-2 transition-all whitespace-nowrap text-slate-300 hover:text-white">
+          <i class="fa-solid fa-compass text-emerald-400"></i>
+          <span>Coordinates & Portals</span>
+        </button>
+        <button onclick="switchTab('builds')" id="tab-builds" class="tab-btn px-4 py-2.5 rounded-t-lg font-medium text-sm flex items-center gap-2 transition-all whitespace-nowrap text-slate-400 hover:text-white">
+          <i class="fa-solid fa-boxes-packing text-amber-400"></i>
+          <span>Build Planner & Resources</span>
+        </button>
+        <button onclick="switchTab('redstone')" id="tab-redstone" class="tab-btn px-4 py-2.5 rounded-t-lg font-medium text-sm flex items-center gap-2 transition-all whitespace-nowrap text-slate-400 hover:text-white">
+          <i class="fa-solid fa-microchip text-rose-400"></i>
+          <span>Redstone & CS Tools</span>
+        </button>
+        <button onclick="switchTab('notes')" id="tab-notes" class="tab-btn px-4 py-2.5 rounded-t-lg font-medium text-sm flex items-center gap-2 transition-all whitespace-nowrap text-slate-400 hover:text-white">
+          <i class="fa-solid fa-server text-sky-400"></i>
+          <span>Servers & Seeds</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Main Content Container -->
+  <main class="flex-grow max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+
+    <!-- TAB 1: COORDINATES & PORTAL CALCULATOR -->
+    <div id="content-coords" class="tab-content space-y-6">
+      
+      <!-- Top Row Grid: Add Location + Nether Calculator -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Nether Portal Instant Calculator Card -->
+        <div class="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between shadow-lg">
+          <div>
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-base font-semibold text-white flex items-center gap-2">
+                <i class="fa-solid fa-door-open text-purple-400"></i>
+                Nether Portal Math
+              </h2>
+              <span class="text-xs bg-purple-500/10 text-purple-400 border border-purple-500/20 px-2 py-0.5 rounded mono-font">1:8 Ratio</span>
+            </div>
+
+            <div class="space-y-4">
+              <!-- Overworld Inputs -->
+              <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+                <label class="text-xs text-slate-400 font-medium mb-1 block flex justify-between">
+                  <span>Overworld Coords</span>
+                  <span class="text-emerald-400 text-[10px]">Overworld &rarr; Nether</span>
+                </label>
+                <div class="grid grid-cols-3 gap-2">
+                  <input type="number" id="calc-ow-x" placeholder="X" oninput="convertCoords('ow')" class="bg-slate-900 border border-slate-700 text-slate-100 rounded px-2.5 py-1.5 text-sm mono-font focus:outline-none focus:border-emerald-500">
+                  <input type="number" id="calc-ow-y" placeholder="Y" oninput="convertCoords('ow')" value="64" class="bg-slate-900 border border-slate-700 text-slate-100 rounded px-2.5 py-1.5 text-sm mono-font focus:outline-none focus:border-emerald-500">
+                  <input type="number" id="calc-ow-z" placeholder="Z" oninput="convertCoords('ow')" class="bg-slate-900 border border-slate-700 text-slate-100 rounded px-2.5 py-1.5 text-sm mono-font focus:outline-none focus:border-emerald-500">
+                </div>
+              </div>
+
+              <!-- Swap Arrow Icon -->
+              <div class="text-center my-[-8px] text-slate-500">
+                <i class="fa-solid fa-arrow-down-up-lock"></i>
+              </div>
+
+              <!-- Nether Inputs -->
+              <div class="bg-slate-800/50 p-3 rounded-lg border border-slate-700/50">
+                <label class="text-xs text-slate-400 font-medium mb-1 block flex justify-between">
+                  <span>Nether Coords</span>
+                  <span class="text-purple-400 text-[10px]">Nether &rarr; Overworld</span>
+                </label>
+                <div class="grid grid-cols-3 gap-2">
+                  <input type="number" id="calc-nether-x" placeholder="X" oninput="convertCoords('nether')" class="bg-slate-900 border border-slate-700 text-slate-100 rounded px-2.5 py-1.5 text-sm mono-font focus:outline-none focus:border-purple-500">
+                  <input type="number" id="calc-nether-y" placeholder="Y" oninput="convertCoords('nether')" value="64" class="bg-slate-900 border border-slate-700 text-slate-100 rounded px-2.5 py-1.5 text-sm mono-font focus:outline-none focus:border-purple-500">
+                  <input type="number" id="calc-nether-z" placeholder="Z" oninput="convertCoords('nether')" class="bg-slate-900 border border-slate-700 text-slate-100 rounded px-2.5 py-1.5 text-sm mono-font focus:outline-none focus:border-purple-500">
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-4 pt-3 border-t border-slate-800 flex items-center justify-between text-xs text-slate-400">
+            <span>Y preserves level</span>
+            <button onclick="clearCalc()" class="text-slate-400 hover:text-white transition-colors">Clear Calc</button>
+          </div>
+        </div>
+
+        <!-- Add New Location Form -->
+        <div class="lg:col-span-2 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-base font-semibold text-white flex items-center gap-2">
+              <i class="fa-solid fa-location-dot text-emerald-400"></i>
+              Save New Location
+            </h2>
+            <span class="text-xs text-slate-400">Persisted locally</span>
+          </div>
+
+          <form id="add-coord-form" onsubmit="handleSaveCoord(event)" class="space-y-4">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Location Name</label>
+                <input type="text" id="coord-title" required placeholder="e.g. Skeleton Spawner Farm" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Dimension</label>
+                <select id="coord-dimension" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                  <option value="Overworld">Overworld</option>
+                  <option value="Nether">Nether</option>
+                  <option value="The End">The End</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">X Coord</label>
+                <input type="number" id="coord-x" required placeholder="0" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm mono-font focus:outline-none focus:border-emerald-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Y Coord</label>
+                <input type="number" id="coord-y" required placeholder="64" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm mono-font focus:outline-none focus:border-emerald-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Z Coord</label>
+                <input type="number" id="coord-z" required placeholder="0" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm mono-font focus:outline-none focus:border-emerald-500">
+              </div>
+            </div>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Category / Tag</label>
+                <select id="coord-tag" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+                  <option value="Base">Base / Home</option>
+                  <option value="Portal">Nether / End Portal</option>
+                  <option value="Farm">Farm / Spawner</option>
+                  <option value="Structure">Structure (Ancient City, Mansion, etc.)</option>
+                  <option value="Mine">Mine / Cave</option>
+                  <option value="Village">Village</option>
+                  <option value="Other">Other</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Quick Note (Optional)</label>
+                <input type="text" id="coord-note" placeholder="e.g. Needs diamond pickaxe to access" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-emerald-500">
+              </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+              <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white font-medium px-5 py-2 rounded-lg text-sm transition-colors flex items-center gap-2">
+                <i class="fa-solid fa-plus"></i> Save Location
+              </button>
+            </div>
+          </form>
+        </div>
+
+      </div>
+
+      <!-- Distance Calculator Bar -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg flex flex-col md:flex-row items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <div class="p-2 rounded-lg bg-sky-500/10 text-sky-400 border border-sky-500/20">
+            <i class="fa-solid fa-ruler"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-semibold text-white">Distance Calculator</h3>
+            <p class="text-xs text-slate-400">Select two saved points to calculate Euclidean distance</p>
+          </div>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-3 w-full md:w-auto">
+          <select id="dist-pt-1" onchange="calculateDistance()" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-sky-500 flex-1 md:w-48">
+            <option value="">Select Point A...</option>
+          </select>
+          <span class="text-slate-500 text-xs">&rarr;</span>
+          <select id="dist-pt-2" onchange="calculateDistance()" class="bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-sky-500 flex-1 md:w-48">
+            <option value="">Select Point B...</option>
+          </select>
+
+          <div id="distance-result" class="bg-slate-800 px-3 py-2 rounded-lg border border-slate-700 text-sky-400 font-mono text-xs font-semibold whitespace-nowrap">
+            Distance: 0 blocks
+          </div>
+        </div>
+      </div>
+
+      <!-- Saved Locations Table & Filter Bar -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-lg">
+        <div class="p-4 border-b border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <div class="flex items-center gap-3">
+            <h3 class="font-semibold text-white text-base">Saved Locations</h3>
+            <span id="coord-count-badge" class="bg-slate-800 text-slate-300 text-xs px-2.5 py-0.5 rounded-full font-mono border border-slate-700">0 Saved</span>
+          </div>
+
+          <div class="flex items-center gap-3 w-full sm:w-auto">
+            <!-- Search -->
+            <div class="relative flex-1 sm:w-48">
+              <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-xs text-slate-500"></i>
+              <input type="text" id="coord-search" oninput="renderCoords()" placeholder="Search coords..." class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-xs rounded-lg pl-8 pr-3 py-2 focus:outline-none focus:border-emerald-500">
+            </div>
+
+            <!-- Dimension Filter -->
+            <select id="coord-filter-dim" onchange="renderCoords()" class="bg-slate-800 border border-slate-700 text-slate-300 text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-emerald-500">
+              <option value="All">All Dimensions</option>
+              <option value="Overworld">Overworld</option>
+              <option value="Nether">Nether</option>
+              <option value="The End">The End</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Coordinates List Table -->
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-800/50 text-xs uppercase text-slate-400 border-b border-slate-800 font-medium">
+              <tr>
+                <th class="py-3 px-4">Name / Tag</th>
+                <th class="py-3 px-4">Dimension</th>
+                <th class="py-3 px-4">Coordinates (X, Y, Z)</th>
+                <th class="py-3 px-4">Nether Equivalent</th>
+                <th class="py-3 px-4">Notes</th>
+                <th class="py-3 px-4 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody id="coord-table-body" class="divide-y divide-slate-800">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- TAB 2: BUILD PLANNER & RESOURCE SHOPPING LIST -->
+    <div id="content-builds" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <!-- Add Resource Form -->
+        <div class="lg:col-span-1 bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg h-fit">
+          <h2 class="text-base font-semibold text-white mb-4 flex items-center gap-2">
+            <i class="fa-solid fa-cart-plus text-amber-400"></i>
+            Add Build Resource
+          </h2>
+
+          <form onsubmit="handleAddResource(event)" class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Project Name</label>
+              <input type="text" id="res-project" required placeholder="e.g. Nether Hub Dome" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Item / Block Name</label>
+              <input type="text" id="res-name" required placeholder="e.g. Tinted Glass" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-500">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Target Amount</label>
+                <input type="number" id="res-target" min="1" required placeholder="256" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm mono-font focus:outline-none focus:border-amber-500">
+              </div>
+              <div>
+                <label class="block text-xs font-medium text-slate-400 mb-1">Collected</label>
+                <input type="number" id="res-collected" min="0" value="0" required placeholder="0" class="w-full bg-slate-800 border border-slate-700 text-white rounded-lg px-3 py-2 text-sm mono-font focus:outline-none focus:border-amber-500">
+              </div>
+            </div>
+
+            <button type="submit" class="w-full bg-amber-600 hover:bg-amber-500 text-white font-medium py-2 rounded-lg text-sm transition-colors flex items-center justify-center gap-2">
+              <i class="fa-solid fa-plus"></i> Add Item to Checklist
+            </button>
+          </form>
+        </div>
+
+        <!-- Resource Checklist Display -->
+        <div class="lg:col-span-2 space-y-4">
+          <div class="bg-slate-900 border border-slate-800 rounded-xl p-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <h3 class="font-semibold text-white text-base">Resource Shopping List</h3>
+              <span id="res-progress-summary" class="text-xs text-amber-400 font-mono bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full">0% Completed</span>
+            </div>
+            <button onclick="clearCompletedResources()" class="text-xs text-slate-400 hover:text-rose-400 transition-colors">
+              <i class="fa-solid fa-trash-can mr-1"></i> Clear Completed
+            </button>
+          </div>
+
+          <!-- Resources Container -->
+          <div id="resources-list" class="space-y-3">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TAB 3: REDSTONE & CS LOGIC / TIMING TOOLS -->
+    <div id="content-redstone" class="tab-content hidden space-y-6">
+      
+      <!-- Interactive CS Base Converter -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <div class="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20">
+              <i class="fa-solid fa-calculator"></i>
+            </div>
+            <div>
+              <h2 class="text-base font-semibold text-white">CS Number Base Converter</h2>
+              <p class="text-xs text-slate-400">Crucial for Redstone ALU logic, signal strength, and CS labs</p>
+            </div>
+          </div>
+          <span class="text-xs text-rose-400 mono-font bg-rose-500/10 px-2.5 py-1 rounded border border-rose-500/20">32-Bit Realtime</span>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <!-- Decimal -->
+          <div class="bg-slate-800/60 p-3.5 rounded-lg border border-slate-700/60">
+            <label class="block text-xs font-medium text-slate-400 mb-1">Decimal (Base 10)</label>
+            <input type="text" id="base-dec" oninput="convertBase('dec')" placeholder="e.g. 15" class="w-full bg-slate-900 border border-slate-700 text-rose-400 font-bold mono-font rounded px-3 py-2 text-sm focus:outline-none focus:border-rose-500">
+            <span class="text-[10px] text-slate-500 mt-1 block">Standard integer count</span>
+          </div>
+
+          <!-- Binary -->
+          <div class="bg-slate-800/60 p-3.5 rounded-lg border border-slate-700/60">
+            <label class="block text-xs font-medium text-slate-400 mb-1">Binary (Base 2)</label>
+            <input type="text" id="base-bin" oninput="convertBase('bin')" placeholder="e.g. 1111" class="w-full bg-slate-900 border border-slate-700 text-rose-400 font-bold mono-font rounded px-3 py-2 text-sm focus:outline-none focus:border-rose-500">
+            <span class="text-[10px] text-slate-500 mt-1 block">Redstone ON/OFF states</span>
+          </div>
+
+          <!-- Hexadecimal -->
+          <div class="bg-slate-800/60 p-3.5 rounded-lg border border-slate-700/60">
+            <label class="block text-xs font-medium text-slate-400 mb-1">Hexadecimal (Base 16)</label>
+            <input type="text" id="base-hex" oninput="convertBase('hex')" placeholder="e.g. F" class="w-full bg-slate-900 border border-slate-700 text-rose-400 font-bold mono-font rounded px-3 py-2 text-sm focus:outline-none focus:border-rose-500">
+            <span class="text-[10px] text-slate-500 mt-1 block">Color & memory addresses</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Redstone Tick & Mechanics Reference Cards -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        
+        <!-- Tick Reference Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+          <div class="flex items-center gap-2 mb-3 text-rose-400 font-semibold text-sm">
+            <i class="fa-solid fa-stopwatch"></i>
+            <h3>Tick Timing Reference</h3>
+          </div>
+          <ul class="space-y-2.5 text-xs text-slate-300">
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">1 Game Tick (GT)</span>
+              <span class="mono-font font-medium text-emerald-400">0.05 Seconds (20 TPS)</span>
+            </li>
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">1 Redstone Tick (RT)</span>
+              <span class="mono-font font-medium text-emerald-400">0.10s (2 Game Ticks)</span>
+            </li>
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">Repeater (1-4 Ticks)</span>
+              <span class="mono-font font-medium text-emerald-400">0.1s - 0.4s Delay</span>
+            </li>
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">Comparator Delay</span>
+              <span class="mono-font font-medium text-emerald-400">1 RT (0.1s)</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Transfer Rates -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+          <div class="flex items-center gap-2 mb-3 text-amber-400 font-semibold text-sm">
+            <i class="fa-solid fa-arrows-spin"></i>
+            <h3>Hopper & Transfer Speeds</h3>
+          </div>
+          <ul class="space-y-2.5 text-xs text-slate-300">
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">Hopper Transfer Speed</span>
+              <span class="mono-font font-medium text-amber-400">2.5 items / sec (8 GT)</span>
+            </li>
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">Double Chest Transfer</span>
+              <span class="mono-font font-medium text-amber-400">5 items / sec (2 hoppers)</span>
+            </li>
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">Dropper / Dispenser</span>
+              <span class="mono-font font-medium text-amber-400">4 GT minimum clock</span>
+            </li>
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">Minecart with Hopper</span>
+              <span class="mono-font font-medium text-amber-400">1 item / 1 GT (Instant)</span>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Signal Strength & Logic -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+          <div class="flex items-center gap-2 mb-3 text-sky-400 font-semibold text-sm">
+            <i class="fa-solid fa-wave-square"></i>
+            <h3>Signal Decay & Logic</h3>
+          </div>
+          <ul class="space-y-2.5 text-xs text-slate-300">
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">Max Signal Strength</span>
+              <span class="mono-font font-medium text-sky-400">15 Blocks Level</span>
+            </li>
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">Redstone Wire Decay</span>
+              <span class="mono-font font-medium text-sky-400">-1 Strength / block</span>
+            </li>
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">AND Gate Output</span>
+              <span class="mono-font font-medium text-sky-400">High if ALL inputs ON</span>
+            </li>
+            <li class="flex justify-between p-2 rounded bg-slate-800/50">
+              <span class="text-slate-400">XOR Gate Output</span>
+              <span class="mono-font font-medium text-sky-400">High if inputs DIFFER</span>
+            </li>
+          </ul>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- TAB 4: SERVER, SEED & MODPACK NOTES -->
+    <div id="content-notes" class="tab-content hidden space-y-6">
+      
+      <!-- Quick Server IP & Seed Bar -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+        
+        <!-- Server IPs Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+          <h2 class="text-base font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-server text-sky-400"></i>
+            Quick Server IPs
+          </h2>
+          
+          <form onsubmit="handleAddServer(event)" class="flex gap-2 mb-4">
+            <input type="text" id="server-name" placeholder="Server Name" required class="w-1/3 bg-slate-800 border border-slate-700 text-xs rounded-lg px-3 py-2 text-white focus:outline-none focus:border-sky-500">
+            <input type="text" id="server-ip" placeholder="mc.example.com:25565" required class="w-2/3 bg-slate-800 border border-slate-700 text-xs rounded-lg px-3 py-2 text-white mono-font focus:outline-none focus:border-sky-500">
+            <button type="submit" class="bg-sky-600 hover:bg-sky-500 text-white px-3 py-2 rounded-lg text-xs transition-colors">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </form>
+
+          <div id="server-list" class="space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Seeds Card -->
+        <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+          <h2 class="text-base font-semibold text-white mb-3 flex items-center gap-2">
+            <i class="fa-solid fa-seedling text-emerald-400"></i>
+            World Seeds & Modpacks
+          </h2>
+
+          <form onsubmit="handleAddSeed(event)" class="flex gap-2 mb-4">
+            <input type="text" id="seed-name" placeholder="World / Modpack Name" required class="w-1/3 bg-slate-800 border border-slate-700 text-xs rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+            <input type="text" id="seed-val" placeholder="-89432049203" required class="w-2/3 bg-slate-800 border border-slate-700 text-xs rounded-lg px-3 py-2 text-white mono-font focus:outline-none focus:border-emerald-500">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-500 text-white px-3 py-2 rounded-lg text-xs transition-colors">
+              <i class="fa-solid fa-plus"></i>
+            </button>
+          </form>
+
+          <div id="seed-list" class="space-y-2">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Scratchpad Notes -->
+      <div class="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-lg">
+        <div class="flex items-center justify-between mb-3">
+          <h2 class="text-base font-semibold text-white flex items-center gap-2">
+            <i class="fa-solid fa-note-sticky text-amber-400"></i>
+            Scratchpad & Modpack Notes
+          </h2>
+          <span class="text-xs text-slate-500">Auto-saves on change</span>
+        </div>
+        <textarea id="notepad" oninput="saveNotes()" rows="8" placeholder="Type general notes, mod configurations, upcoming project designs, or commands here..." class="w-full bg-slate-800 border border-slate-700 text-slate-200 text-sm rounded-lg p-3 font-mono focus:outline-none focus:border-amber-500"></textarea>
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="bg-slate-900 border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+    <p>CraftOS Dashboard &bull; Designed for Minecraft Players & CS Enthusiasts</p>
+  </footer>
+
+  <script>
+    /* ================= LOCAL STORAGE KEYS & STATE ================= */
+    const STORAGE_COORDS = 'mc_companion_coords';
+    const STORAGE_RESOURCES = 'mc_companion_resources';
+    const STORAGE_SERVERS = 'mc_companion_servers';
+    const STORAGE_SEEDS = 'mc_companion_seeds';
+    const STORAGE_NOTES = 'mc_companion_notes';
+
+    let coordsData = JSON.parse(localStorage.getItem(STORAGE_COORDS)) || [
+      { id: 1, title: "Main Base & Storage", dimension: "Overworld", x: 120, y: 64, z: -340, tag: "Base", note: "Central hub" },
+      { id: 2, title: "Nether Fortress Blaze Spawner", dimension: "Nether", x: 15, y: 52, z: -42, tag: "Farm", note: "XP farm built" },
+      { id: 3, title: "End Portal Frame", dimension: "Overworld", x: 1150, y: 28, z: 890, tag: "Portal", note: "Fully lit portal" }
+    ];
+
+    let resourcesData = JSON.parse(localStorage.getItem(STORAGE_RESOURCES)) || [
+      { id: 1, project: "Nether Hub", name: "Obsidian", target: 128, collected: 64 },
+      { id: 2, project: "Nether Hub", name: "Redstone Dust", target: 300, collected: 300 }
+    ];
+
+    let serversData = JSON.parse(localStorage.getItem(STORAGE_SERVERS)) || [
+      { id: 1, name: "Survival SMP", ip: "smp.craft-example.net" }
+    ];
+
+    let seedsData = JSON.parse(localStorage.getItem(STORAGE_SEEDS)) || [
+      { id: 1, name: "1.20 Cherry Grove Spawn", val: "-89230492830912" }
+    ];
+
+    /* ================= INITIALIZATION ================= */
+    window.onload = function() {
+      renderCoords();
+      renderResources();
+      renderServers();
+      renderSeeds();
+      
+      const savedNote = localStorage.getItem(STORAGE_NOTES);
+      if (savedNote) {
+        document.getElementById('notepad').value = savedNote;
+      }
+    };
+
+    /* ================= TOAST NOTIFICATION ================= */
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      const toastMsg = document.getElementById('toast-message');
+      toastMsg.innerText = msg;
+      toast.classList.remove('translate-y-20', 'opacity-0');
+      toast.classList.add('translate-y-0', 'opacity-100');
+      
+      setTimeout(() => {
+        toast.classList.remove('translate-y-0', 'opacity-100');
+        toast.classList.add('translate-y-20', 'opacity-0');
+      }, 2500);
+    }
+
+    /* ================= TAB NAVIGATION ================= */
+    function switchTab(tabId) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+      document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('tab-active');
+        btn.classList.add('text-slate-400');
+      });
+
+      document.getElementById(`content-${tabId}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`tab-${tabId}`);
+      activeBtn.classList.add('tab-active');
+      activeBtn.classList.remove('text-slate-400');
+    }
+
+    /* ================= TAB 1: COORDINATES & PORTAL LOGIC ================= */
+    function renderCoords() {
+      const tbody = document.getElementById('coord-table-body');
+      const search = document.getElementById('coord-search').value.toLowerCase();
+      const dimFilter = document.getElementById('coord-filter-dim').value;
+
+      tbody.innerHTML = '';
+
+      const filtered = coordsData.filter(item => {
+        const matchesSearch = item.title.toLowerCase().includes(search) || item.note.toLowerCase().includes(search) || item.tag.toLowerCase().includes(search);
+        const matchesDim = dimFilter === 'All' || item.dimension === dimFilter;
+        return matchesSearch && matchesDim;
+      });
+
+      document.getElementById('coord-count-badge').innerText = `${filtered.length} Saved`;
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="py-6 text-center text-slate-500 text-xs">No saved coordinates found matching filter.</td></tr>`;
+      } else {
+        filtered.forEach(item => {
+          let dimBadgeClass = 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20';
+          if (item.dimension === 'Nether') dimBadgeClass = 'bg-purple-500/10 text-purple-400 border-purple-500/20';
+          if (item.dimension === 'The End') dimBadgeClass = 'bg-amber-500/10 text-amber-400 border-amber-500/20';
+
+          let netherEquivalent = 'N/A';
+          if (item.dimension === 'Overworld') {
+            netherEquivalent = `X: ${Math.round(item.x / 8)}, Z: ${Math.round(item.z / 8)}`;
+          } else if (item.dimension === 'Nether') {
+            netherEquivalent = `X: ${item.x * 8}, Z: ${item.z * 8}`;
+          }
+
+          const tr = document.createElement('tr');
+          tr.className = 'hover:bg-slate-800/40 transition-colors';
+          tr.innerHTML = `
+            <td class="py-3 px-4">
+              <div class="font-medium text-white">${escapeHtml(item.title)}</div>
+              <span class="text-[10px] text-slate-400 px-1.5 py-0.5 rounded bg-slate-800 border border-slate-700">${escapeHtml(item.tag)}</span>
+            </td>
+            <td class="py-3 px-4">
+              <span class="text-xs px-2 py-0.5 rounded border font-medium ${dimBadgeClass}">${item.dimension}</span>
+            </td>
+            <td class="py-3 px-4 mono-font text-emerald-400 font-semibold text-xs">
+              X: ${item.x}, Y: ${item.y}, Z: ${item.z}
+            </td>
+            <td class="py-3 px-4 mono-font text-purple-400 text-xs">
+              ${netherEquivalent}
+            </td>
+            <td class="py-3 px-4 text-xs text-slate-400 max-w-xs truncate">
+              ${escapeHtml(item.note || '-')}
+            </td>
+            <td class="py-3 px-4 text-right space-x-2">
+              <button onclick="copyToClipboard('/tp ${item.x} ${item.y} ${item.z}', 'TP Command Copied!')" class="text-slate-400 hover:text-emerald-400 text-xs px-2 py-1 bg-slate-800 rounded border border-slate-700" title="Copy TP Command">
+                <i class="fa-solid fa-terminal"></i>
+              </button>
+              <button onclick="deleteCoord(${item.id})" class="text-slate-400 hover:text-rose-400 text-xs px-2 py-1 bg-slate-800 rounded border border-slate-700" title="Delete">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </td>
+          `;
+          tbody.appendChild(tr);
+        });
+      }
+
+      updateDistanceDropdowns();
+    }
+
+    function handleSaveCoord(e) {
+      e.preventDefault();
+      const title = document.getElementById('coord-title').value;
+      const dimension = document.getElementById('coord-dimension').value;
+      const x = parseInt(document.getElementById('coord-x').value);
+      const y = parseInt(document.getElementById('coord-y').value);
+      const z = parseInt(document.getElementById('coord-z').value);
+      const tag = document.getElementById('coord-tag').value;
+      const note = document.getElementById('coord-note').value;
+
+      const newCoord = { id: Date.now(), title, dimension, x, y, z, tag, note };
+      coordsData.push(newCoord);
+      localStorage.setItem(STORAGE_COORDS, JSON.stringify(coordsData));
+
+      document.getElementById('add-coord-form').reset();
+      renderCoords();
+      showToast("Location saved successfully!");
+    }
+
+    function deleteCoord(id) {
+      coordsData = coordsData.filter(c => c.id !== id);
+      localStorage.setItem(STORAGE_COORDS, JSON.stringify(coordsData));
+      renderCoords();
+      showToast("Location removed.");
+    }
+
+    // Interactive Portal Calculator Logic
+    function convertCoords(source) {
+      if (source === 'ow') {
+        const x = parseFloat(document.getElementById('calc-ow-x').value) || 0;
+        const y = parseFloat(document.getElementById('calc-ow-y').value) || 64;
+        const z = parseFloat(document.getElementById('calc-ow-z').value) || 0;
+
+        document.getElementById('calc-nether-x').value = (x / 8).toFixed(1);
+        document.getElementById('calc-nether-y').value = y;
+        document.getElementById('calc-nether-z').value = (z / 8).toFixed(1);
+      } else if (source === 'nether') {
+        const x = parseFloat(document.getElementById('calc-nether-x').value) || 0;
+        const y = parseFloat(document.getElementById('calc-nether-y').value) || 64;
+        const z = parseFloat(document.getElementById('calc-nether-z').value) || 0;
+
+        document.getElementById('calc-ow-x').value = (x * 8).toFixed(1);
+        document.getElementById('calc-ow-y').value = y;
+        document.getElementById('calc-ow-z').value = (z * 8).toFixed(1);
+      }
+    }
+
+    function clearCalc() {
+      document.getElementById('calc-ow-x').value = '';
+      document.getElementById('calc-ow-y').value = '64';
+      document.getElementById('calc-ow-z').value = '';
+      document.getElementById('calc-nether-x').value = '';
+      document.getElementById('calc-nether-y').value = '64';
+      document.getElementById('calc-nether-z').value = '';
+    }
+
+    // Distance Calculator Logic
+    function updateDistanceDropdowns() {
+      const p1 = document.getElementById('dist-pt-1');
+      const p2 = document.getElementById('dist-pt-2');
+      
+      const prev1 = p1.value;
+      const prev2 = p2.value;
+
+      p1.innerHTML = '<option value="">Select Point A...</option>';
+      p2.innerHTML = '<option value="">Select Point B...</option>';
+
+      coordsData.forEach(c => {
+        p1.innerHTML += `<option value="${c.id}">${escapeHtml(c.title)} (${c.x}, ${c.y}, ${c.z})</option>`;
+        p2.innerHTML += `<option value="${c.id}">${escapeHtml(c.title)} (${c.x}, ${c.y}, ${c.z})</option>`;
+      });
+
+      p1.value = prev1;
+      p2.value = prev2;
+    }
+
+    function calculateDistance() {
+      const id1 = document.getElementById('dist-pt-1').value;
+      const id2 = document.getElementById('dist-pt-2').value;
+      const resDisplay = document.getElementById('distance-result');
+
+      if (!id1 || !id2) {
+        resDisplay.innerText = "Distance: 0 blocks";
+        return;
+      }
+
+      const p1 = coordsData.find(c => c.id == id1);
+      const p2 = coordsData.find(c => c.id == id2);
+
+      if (p1 && p2) {
+        const dx = p1.x - p2.x;
+        const dy = p1.y - p2.y;
+        const dz = p1.z - p2.z;
+        const dist = Math.sqrt(dx * dx + dy * dy + dz * dz);
+        resDisplay.innerText = `Distance: ${dist.toFixed(1)} blocks`;
+      }
+    }
+
+    /* ================= TAB 2: RESOURCE PLANNER LOGIC ================= */
+    function renderResources() {
+      const list = document.getElementById('resources-list');
+      list.innerHTML = '';
+
+      if (resourcesData.length === 0) {
+        list.innerHTML = `<div class="bg-slate-900 border border-slate-800 rounded-xl p-8 text-center text-slate-500 text-sm">No build resources logged yet. Add your first item above!</div>`;
+        document.getElementById('res-progress-summary').innerText = '0% Completed';
+        return;
+      }
+
+      let totalTarget = 0;
+      let totalCollected = 0;
+
+      resourcesData.forEach(item => {
+        totalTarget += item.target;
+        totalCollected += Math.min(item.collected, item.target);
+
+        const pct = Math.min(100, Math.round((item.collected / item.target) * 100));
+        const stacks = (item.target / 64).toFixed(1);
+
+        const div = document.createElement('div');
+        div.className = 'bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-lg flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4';
+        div.innerHTML = `
+          <div class="flex-1 w-full">
+            <div class="flex items-center justify-between mb-1">
+              <span class="text-xs text-amber-400 font-medium px-2 py-0.5 bg-amber-500/10 border border-amber-500/20 rounded">${escapeHtml(item.project)}</span>
+              <span class="text-xs text-slate-400 font-mono">${item.collected} / ${item.target} (${stacks} stacks)</span>
+            </div>
+            <h4 class="text-sm font-semibold text-white mb-2">${escapeHtml(item.name)}</h4>
+            
+            <!-- Progress Bar -->
+            <div class="w-full bg-slate-800 rounded-full h-2 overflow-hidden border border-slate-700">
+              <div class="bg-amber-500 h-2 rounded-full transition-all duration-300" style="width: ${pct}%"></div>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 w-full sm:w-auto justify-end">
+            <input type="number" value="${item.collected}" onchange="updateResourceCollected(${item.id}, this.value)" class="bg-slate-800 border border-slate-700 text-white text-xs rounded px-2 py-1.5 w-20 mono-font text-center focus:outline-none focus:border-amber-500">
+            <button onclick="deleteResource(${item.id})" class="text-slate-400 hover:text-rose-400 text-xs px-2.5 py-1.5 bg-slate-800 rounded border border-slate-700">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+
+      const overallPct = totalTarget > 0 ? Math.round((totalCollected / totalTarget) * 100) : 0;
+      document.getElementById('res-progress-summary').innerText = `${overallPct}% Completed`;
+    }
+
+    function handleAddResource(e) {
+      e.preventDefault();
+      const project = document.getElementById('res-project').value;
+      const name = document.getElementById('res-name').value;
+      const target = parseInt(document.getElementById('res-target').value);
+      const collected = parseInt(document.getElementById('res-collected').value);
+
+      resourcesData.push({ id: Date.now(), project, name, target, collected });
+      localStorage.setItem(STORAGE_RESOURCES, JSON.stringify(resourcesData));
+
+      document.getElementById('res-name').value = '';
+      document.getElementById('res-target').value = '';
+      document.getElementById('res-collected').value = '0';
+
+      renderResources();
+      showToast("Resource added to checklist!");
+    }
+
+    function updateResourceCollected(id, val) {
+      const item = resourcesData.find(r => r.id === id);
+      if (item) {
+        item.collected = parseInt(val) || 0;
+        localStorage.setItem(STORAGE_RESOURCES, JSON.stringify(resourcesData));
+        renderResources();
+      }
+    }
+
+    function deleteResource(id) {
+      resourcesData = resourcesData.filter(r => r.id !== id);
+      localStorage.setItem(STORAGE_RESOURCES, JSON.stringify(resourcesData));
+      renderResources();
+    }
+
+    function clearCompletedResources() {
+      resourcesData = resourcesData.filter(r => r.collected < r.target);
+      localStorage.setItem(STORAGE_RESOURCES, JSON.stringify(resourcesData));
+      renderResources();
+      showToast("Cleared completed items!");
+    }
+
+    /* ================= TAB 3: CS BASE CONVERTER ================= */
+    function convertBase(source) {
+      const decInput = document.getElementById('base-dec');
+      const binInput = document.getElementById('base-bin');
+      const hexInput = document.getElementById('base-hex');
+
+      try {
+        let num = 0;
+        if (source === 'dec') {
+          const val = decInput.value.trim();
+          if (!val) { binInput.value = ''; hexInput.value = ''; return; }
+          num = parseInt(val, 10);
+        } else if (source === 'bin') {
+          const val = binInput.value.trim();
+          if (!val) { decInput.value = ''; hexInput.value = ''; return; }
+          num = parseInt(val, 2);
+        } else if (source === 'hex') {
+          const val = hexInput.value.trim();
+          if (!val) { decInput.value = ''; binInput.value = ''; return; }
+          num = parseInt(val, 16);
+        }
+
+        if (!isNaN(num)) {
+          if (source !== 'dec') decInput.value = num.toString(10);
+          if (source !== 'bin') binInput.value = num.toString(2);
+          if (source !== 'hex') hexInput.value = num.toString(16).toUpperCase();
+        }
+      } catch (err) {
+        // Ignore parsing errors
+      }
+    }
+
+    /* ================= TAB 4: SERVERS, SEEDS & NOTES ================= */
+    function renderServers() {
+      const list = document.getElementById('server-list');
+      list.innerHTML = '';
+
+      serversData.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-2.5 bg-slate-800/50 rounded-lg border border-slate-700/50';
+        div.innerHTML = `
+          <div>
+            <div class="text-xs font-medium text-white">${escapeHtml(s.name)}</div>
+            <div class="text-xs text-sky-400 mono-font">${escapeHtml(s.ip)}</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="copyToClipboard('${escapeHtml(s.ip)}', 'Server IP Copied!')" class="text-xs bg-sky-600/20 text-sky-400 border border-sky-500/30 px-2 py-1 rounded hover:bg-sky-600/30">
+              <i class="fa-solid fa-copy"></i> Copy
+            </button>
+            <button onclick="deleteServer(${s.id})" class="text-xs text-slate-500 hover:text-rose-400 px-1.5 py-1">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function handleAddServer(e) {
+      e.preventDefault();
+      const name = document.getElementById('server-name').value;
+      const ip = document.getElementById('server-ip').value;
+      serversData.push({ id: Date.now(), name, ip });
+      localStorage.setItem(STORAGE_SERVERS, JSON.stringify(serversData));
+      document.getElementById('server-name').value = '';
+      document.getElementById('server-ip').value = '';
+      renderServers();
+      showToast("Server added!");
+    }
+
+    function deleteServer(id) {
+      serversData = serversData.filter(s => s.id !== id);
+      localStorage.setItem(STORAGE_SERVERS, JSON.stringify(serversData));
+      renderServers();
+    }
+
+    function renderSeeds() {
+      const list = document.getElementById('seed-list');
+      list.innerHTML = '';
+
+      seedsData.forEach(s => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center justify-between p-2.5 bg-slate-800/50 rounded-lg border border-slate-700/50';
+        div.innerHTML = `
+          <div>
+            <div class="text-xs font-medium text-white">${escapeHtml(s.name)}</div>
+            <div class="text-xs text-emerald-400 mono-font">${escapeHtml(s.val)}</div>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="copyToClipboard('${escapeHtml(s.val)}', 'Seed Copied!')" class="text-xs bg-emerald-600/20 text-emerald-400 border border-emerald-500/30 px-2 py-1 rounded hover:bg-emerald-600/30">
+              <i class="fa-solid fa-copy"></i> Copy
+            </button>
+            <button onclick="deleteSeed(${s.id})" class="text-xs text-slate-500 hover:text-rose-400 px-1.5 py-1">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        `;
+        list.appendChild(div);
+      });
+    }
+
+    function handleAddSeed(e) {
+      e.preventDefault();
+      const name = document.getElementById('seed-name').value;
+      const val = document.getElementById('seed-val').value;
+      seedsData.push({ id: Date.now(), name, val });
+      localStorage.setItem(STORAGE_SEEDS, JSON.stringify(seedsData));
+      document.getElementById('seed-name').value = '';
+      document.getElementById('seed-val').value = '';
+      renderSeeds();
+      showToast("Seed saved!");
+    }
+
+    function deleteSeed(id) {
+      seedsData = seedsData.filter(s => s.id !== id);
+      localStorage.setItem(STORAGE_SEEDS, JSON.stringify(seedsData));
+      renderSeeds();
+    }
+
+    function saveNotes() {
+      const val = document.getElementById('notepad').value;
+      localStorage.setItem(STORAGE_NOTES, val);
+    }
+
+    /* ================= UTILITY FUNCTIONS ================= */
+    function copyToClipboard(text, msg) {
+      const dummy = document.createElement("textarea");
+      document.body.appendChild(dummy);
+      dummy.value = text;
+      dummy.select();
+      document.execCommand("copy");
+      document.body.removeChild(dummy);
+      showToast(msg || "Copied to clipboard!");
+    }
+
+    function escapeHtml(str) {
+      if (!str) return '';
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
